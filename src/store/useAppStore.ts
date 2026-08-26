@@ -34,6 +34,7 @@ export interface Exercise {
   animationClip: string
   formTips?: string[]
   imageKitId?: string
+  isFavorite?: boolean
 }
 
 export interface ExerciseLog {
@@ -147,8 +148,8 @@ export const useAppStore = create<AppState>()(
       {
         name: 'fitness3d-storage',
         partialize: (state) => ({
-          activeCategory: true,
-          demoSpeed: true,
+          activeCategory: state.activeCategory,
+          demoSpeed: state.demoSpeed,
           // Don't persist transient 3D/view state
         })
       }
