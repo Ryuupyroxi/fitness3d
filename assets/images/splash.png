@@ -1,0 +1,4 @@
+# Placeholder splash screen
+<!-- This will be replaced with actual splash image -->
+const splash = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64')
+export default splash
