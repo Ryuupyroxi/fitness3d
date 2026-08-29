@@ -7,6 +7,8 @@ import React, { useEffect, useRef, useCallback, useState } from 'react'
 import { View, StyleSheet, Dimensions, PanResponder } from 'react-native'
 import { GLView } from 'expo-gl'
 import * as THREE from 'three'
+import { useAppStore } from '../store/useAppStore'
+import ModelLoader from '../services/3dModelLoader'
 
 interface ThreeCanvasProps {
   onCanvasReady?: (ctx: {
@@ -29,6 +31,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const animationFrameRef = useRef<number>(0)
   const cubeRef = useRef<THREE.Mesh | null>(null)
+  const muscleRef = useRef<THREE.Group | null>(null)
+  
+  const { selectedMuscle } = useAppStore()
+  const modelLoader = new ModelLoader()
+  
+  
+
   const [cameraControls, setCameraControls] = useState({
     rotation: 0,
     zoom: 1,
@@ -94,13 +103,25 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         directionalLight.position.set(1, 1, 1)
         scene.add(directionalLight)
 
-        // Placeholder mesh (replaced with muscle model in Phase 2)
-        const geometry = new THREE.BoxGeometry(1, 1, 1)
-        const material = new THREE.MeshStandardMaterial({ color: 0x4a90e2 })
-        const cube = new THREE.Mesh(geometry, material)
-        cube.name = 'placeholder_muscle'
-        scene.add(cube)
-        cubeRef.current = cube
+        // Load muscle model from body.glb (real 3D asset)
+        // Falls back to placeholder cube if loading fails
+        try {
+          const model = await modelLoader.loadMuscleModel('body');
+          if (model.scene) {
+            scene.add(model.scene);
+            muscleRef.current = model.scene;
+          } else {
+            throw new Error('Model scene is null');
+          }
+        } catch (error) {
+          console.warn('Failed to load muscle model, using placeholder cube');
+          const geometry = new THREE.BoxGeometry(1, 1, 1);
+          const material = new THREE.MeshStandardMaterial({ color: 0x4a90e2 });
+          const cube = new THREE.Mesh(geometry, material);
+          cube.name = 'placeholder_muscle';
+          scene.add(cube);
+          cubeRef.current = cube;
+        }
 
         sceneRef.current = scene
         cameraRef.current = camera
