@@ -99,15 +99,18 @@ jobs:
         timeout-minutes: 10
 
       - name: Setup Java JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
-          cache: 'gradle'
 
       - name: Build Android APK (Debug)
-        run: cd android && ./gradlew assembleDebug --no-daemon --warning-mode=all
+        # Use expo run:android instead of raw gradle — handles node path resolution internally
+        run: npx expo run:android --variant debug --no-install
         timeout-minutes: 20
+        env:
+          ANDROID_HOME: /opt/android-sdk
+          ANDROID_SDK_ROOT: /opt/android-sdk
 
       - name: Verify APK was produced
         run: |

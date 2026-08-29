@@ -7,7 +7,8 @@
     "build": "eas build --platform android",
     "test": "jest",
     "lint": "eslint src --fix",
-    "android": "expo run:android"
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@gorhom/bottom-sheet": "~4.6.4",
