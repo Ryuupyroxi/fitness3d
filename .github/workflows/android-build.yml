@@ -104,13 +104,14 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Build Android APK (Debug)
-        # Use expo run:android instead of raw gradle — handles node path resolution internally
-        run: npx expo run:android --variant debug --no-install
+        run: |
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+          cd android && ./gradlew assembleDebug --no-daemon
         timeout-minutes: 20
-        env:
-          ANDROID_HOME: /opt/android-sdk
-          ANDROID_SDK_ROOT: /opt/android-sdk
 
       - name: Verify APK was produced
         run: |
