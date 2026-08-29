@@ -71,7 +71,7 @@ export const MuscleSelectScreen: React.FC<any> = ({ navigation }) => {
       }}
     >
       <View style={styles.muscleBadge}>
-        <Ionicons name="bonemeal" size={24} color="#4A90E2" />
+        <Ionicons name="body" size={24} color="#4A90E2" />
       </View>
       <View style={styles.muscleInfo}>
         <Text style={styles.muscleName}>{item.name}</Text>
@@ -126,7 +126,7 @@ export const MuscleSelectScreen: React.FC<any> = ({ navigation }) => {
             onPress={() => setSelectedZone(zone)}
           >
             <Ionicons
-              name={zone ? ZONE_ICONS[zone] : 'list'}
+              name={(zone ? ZONE_ICONS[zone] : 'list') as any}
               size={16}
               color={selectedZone === zone ? '#fff' : '#4A90E2'}
             />
@@ -142,12 +142,11 @@ export const MuscleSelectScreen: React.FC<any> = ({ navigation }) => {
         ))}
       </View>
 
-      <SectionList
-        sections={sections}
-        renderSectionHeader={renderSectionHeader}
+      <FlatList
+        data={sections}
         renderItem={renderMuscleItem}
-        keyExtractor={(item) => item.id}
-        stickySectionHeaders={false}
+        keyExtractor={(item) => item.title}
+        ItemSeparatorComponent={() => <View style={{ height: 1 }} />}
         contentContainerStyle={styles.listContent}
       />
     </View>

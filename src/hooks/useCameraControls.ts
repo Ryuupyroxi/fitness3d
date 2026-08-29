@@ -36,15 +36,15 @@ export const useCameraControls = ({
 
   // Apply smooth damping
   const applyDamping = useCallback(() => {
-    setVelocity((v) => ({
-      x: v.x * (1 - dampingFactor),
-      y: v.y * (1 - dampingFactor),
+    setVelocity((vel) => ({
+      x: vel.x * (1 - dampingFactor),
+      y: vel.y * (1 - dampingFactor),
     }))
 
     setControls((prev) => ({
       ...prev,
-      rotation: prev.rotation + v.x,
-      pan: [prev.pan[0] + v.y, prev.pan[1]],
+      rotation: prev.rotation + velocity.x,
+      pan: [prev.pan[0] + velocity.y, prev.pan[1]],
     }))
   }, [dampingFactor])
 

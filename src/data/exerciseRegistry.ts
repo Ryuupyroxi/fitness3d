@@ -974,7 +974,7 @@ export const EXERCISE_REGISTRY: Record<string, Exercise> = {
   },
   'child_pose': {
     id: 'child_pose',
-    name: 'Child's Pose',
+    name: 'Child\'s Pose',
     description: 'Restorative lower back stretch.',
     muscles: ['erector_spinae', 'gluteus_maximus'],
     category: 'stretches',

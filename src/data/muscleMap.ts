@@ -5,7 +5,8 @@
  * Contains 300+ muscle definitions with anatomical data
  */
 
-import type { Muscle, MuscleZone } from '../types'
+import type { Muscle, MuscleZone, Exercise } from '../types'
+import { EXERCISE_REGISTRY } from '../data/exerciseRegistry'
 
 export const MUSCLE_MAP: Record<string, Muscle> = {
   'neck': {
@@ -3923,3 +3924,8 @@ export const MUSCLE_GROUPS = [
 export const MUSCLE_COUNT = Object.keys(MUSCLE_MAP).length
 
 export default MUSCLE_MAP
+
+// Get exercises targeting a specific muscle
+export const getExercisesForMuscle = (muscleId: string): Exercise[] => {
+  return Object.values(EXERCISE_REGISTRY).filter(ex => ex.muscles.includes(muscleId))
+}

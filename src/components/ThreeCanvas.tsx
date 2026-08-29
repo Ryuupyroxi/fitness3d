@@ -169,7 +169,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   }, [])
 
   return (
-    <View style={[styles.container, style]} {...undefined}>
+    <View style={[styles.container, style]} >
       <GLView
         style={[styles.canvas]}
         onContextCreate={onContextCreate}

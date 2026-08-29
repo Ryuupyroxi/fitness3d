@@ -82,7 +82,7 @@ export const ExerciseDetailScreen: React.FC<ExerciseDetailProps> = ({ route, nav
       <Animated.ScrollView
         style={styles.scrollContent}
         contentContainerStyle={{ paddingBottom: 80 }}
-        entering={require('react-native-reanimated').FadeIn.duration(300)}
+
       >
         <View style={styles.section}>
           <Text style={styles.title}>About</Text>
@@ -119,7 +119,7 @@ export const ExerciseDetailScreen: React.FC<ExerciseDetailProps> = ({ route, nav
 
   const renderDemo = () => {
     return (
-      <View style={styles.tabContent}>
+      <View style={styles.tabContent as any}>
         <View style={styles.demoPlaceholder}>
           <Ionicons name="play-circle" size={80} color="#4A90E2" />
           <Text style={styles.demoText}>3D Animation Demo</Text>
@@ -304,6 +304,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#333',
     lineHeight: 22,
+  },
+  tabContent: {
+    paddingBottom: 20,
   },
 })
 

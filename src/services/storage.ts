@@ -46,7 +46,7 @@ export const getUserSettings = (): UserSettings => {
 export const setUserSettings = (settings: Partial<UserSettings>): void => {
   const current = getUserSettings()
   const updated = { ...current, ...settings }
-  mmkv.setString(STORAGE_KEYS.USER_SETTINGS, JSON.stringify(updated))
+  mmkv.set(STORAGE_KEYS.USER_SETTINGS, JSON.stringify(updated))
 }
 
 // ====================
@@ -69,7 +69,7 @@ export const toggleFavoriteExercise = (exerciseId: string): boolean => {
     updated = [...favorites, exerciseId]
   }
   
-  mmkv.setString(STORAGE_KEYS.FAVORITE_EXERCISES, JSON.stringify(updated))
+  mmkv.set(STORAGE_KEYS.FAVORITE_EXERCISES, JSON.stringify(updated))
   return !isFavorite
 }
 
@@ -115,7 +115,7 @@ export const addExerciseLog = (log: Omit<ExerciseLog, 'id' | 'timestamp'>): void
   }
   
   const updated = [newLog, ...allLogs]
-  mmkv.setString(STORAGE_KEYS.EXERCISE_LOGS, JSON.stringify(updated))
+  mmkv.set(STORAGE_KEYS.EXERCISE_LOGS, JSON.stringify(updated))
 }
 
 export const updateExerciseLog = (logId: string, updates: Partial<Omit<ExerciseLog, 'id' | 'timestamp'>>): void => {
@@ -123,13 +123,13 @@ export const updateExerciseLog = (logId: string, updates: Partial<Omit<ExerciseL
   const updated = logs.map(log => 
     log.id === logId ? { ...log, ...updates } : log
   )
-  mmkv.setString(STORAGE_KEYS.EXERCISE_LOGS, JSON.stringify(updated))
+  mmkv.set(STORAGE_KEYS.EXERCISE_LOGS, JSON.stringify(updated))
 }
 
 export const deleteExerciseLog = (logId: string): void => {
   const logs = getExerciseLogs()
   const updated = logs.filter(log => log.id !== logId)
-  mmkv.setString(STORAGE_KEYS.EXERCISE_LOGS, JSON.stringify(updated))
+  mmkv.set(STORAGE_KEYS.EXERCISE_LOGS, JSON.stringify(updated))
 }
 
 // ====================
@@ -141,7 +141,7 @@ export const clearAllData = (): void => {
 }
 
 export const setFirstRunComplete = (): void => {
-  mmkv.setBoolean(STORAGE_KEYS.APP_FIRST_RUN, false)
+  mmkv.set(STORAGE_KEYS.APP_FIRST_RUN, false)
 }
 
 export const isFirstRun = (): boolean => {
@@ -149,11 +149,11 @@ export const isFirstRun = (): boolean => {
 }
 
 export const setAppVersion = (version: string): void => {
-  mmkv.setString(STORAGE_KEYS.VERSION, version)
+  mmkv.set(STORAGE_KEYS.VERSION, version)
 }
 
 export const getAppVersion = (): string | null => {
-  return mmkv.getString(STORAGE_KEYS.VERSION)
+  return (mmkv.getString(STORAGE_KEYS.VERSION) ?? null)
 }
 
 export default mmkv

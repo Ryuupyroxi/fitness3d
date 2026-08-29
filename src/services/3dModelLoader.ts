@@ -3,6 +3,7 @@
  * Fitness 3D App - Phase 2
  */
 
+// @ts-ignore GLTFLoader path resolution
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import type { Muscle, Exercise } from '../types'
 import * as THREE from 'three'
@@ -36,7 +37,7 @@ class ModelLoader {
     return new Promise((resolve, reject) => {
       this.loader.load(
         path,
-        (gltf) => {
+        (gltf: any) => {
           this.cache.set(path, {
             scene: gltf.scene,
             animations: gltf.animations,
@@ -45,10 +46,10 @@ class ModelLoader {
           });
           resolve(this.cache.get(path)!);
         },
-        (xhr) => {
+        (xhr: any) => {
           console.log(`Loading model: ${(xhr.loaded / xhr.total) * 100}%`);
         },
-        (error) => {
+        (error: any) => {
           console.error('Error loading model:', error);
           reject(error);
         }
