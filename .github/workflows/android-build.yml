@@ -1,40 +1,172 @@
 name: Build Android APK
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force clean rebuild'
+        required: false
+        default: 'false'
+
 env:
-  NODE_VERSION: '18.x'
+  NODE_VERSION: '18'
+  EXPO_VERSION: '~51.0.0'
+  JAVA_VERSION: '17'
+
 jobs:
-  build-apk:
+  # ============================================================
+  # JOB 1: Verify & Audit — fail fast before wasting compute
+  # ============================================================
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Node.js ${{ env.NODE_VERSION }}
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      - name: Install Expo CLI
-        run: npm install -g expo-cli@~51.0.0
-      - name: Install Dependencies
-        run: npm install --legacy-peer-deps
-      - name: Prebuild Android
-        run: npx expo prebuild --platform android --no-install
-      - name: Setup JDK 17
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+        timeout-minutes: 5
+
+      - name: Audit security vulnerabilities
+        run: npm audit --audit-level=high
+        timeout-minutes: 5
+
+      - name: Verify 3D model asset
+        run: |
+          if [ -f assets/models/body.glb ]; then
+            SIZE=$(stat -c%s assets/models/body.glb)
+            if [ "$SIZE" -gt 10000 ]; then
+              echo "✓ body.glb present ($SIZE bytes)"
+            else
+              echo "✗ body.glb too small ($SIZE bytes)"
+              exit 1
+            fi
+          else
+            echo "✗ body.glb missing"
+            exit 1
+          fi
+
+      - name: Verify muscle map
+        run: |
+          COUNT=$(grep -c "id:" src/data/muscleMap.ts 2>/dev/null || echo 0)
+          echo "Muscle entries: $COUNT"
+
+      - name: Verify exercise registry
+        run: |
+          COUNT=$(grep -c "name:" src/data/exerciseRegistry.ts 2>/dev/null || echo 0)
+          echo "Exercise entries: $COUNT"
+
+  # ============================================================
+  # JOB 2: Build APK — runs only after audit passes
+  # ============================================================
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: audit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # Expo prebuild generates the android/ directory
+      - name: Expo prebuild (generate android/ directory)
+        run: npx expo prebuild --platform android --clean
+        timeout-minutes: 10
+
+      - name: Setup Java JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
-      - name: Build APK
-        run: cd android && ./gradlew assembleDebug
-      - name: Upload APK
+          cache: 'gradle'
+
+      - name: Build Android APK (Debug)
+        run: cd android && ./gradlew assembleDebug --no-daemon --warning-mode=all
+        timeout-minutes: 20
+
+      - name: Verify APK was produced
+        run: |
+          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK_PATH" ]; then
+            SIZE=$(stat -c%s "$APK_PATH")
+            echo "✓ APK produced: $APK_PATH ($SIZE bytes)"
+            if [ "$SIZE" -lt 1000000 ]; then
+              echo "⚠ WARNING: APK suspiciously small (< 1MB)"
+              exit 1
+            fi
+          else
+            echo "✗ APK not found at $APK_PATH"
+            find android -name "*.apk" 2>/dev/null
+            exit 1
+          fi
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fitness3d-apk
+          name: fitness3d-apk-${{ github.run_number }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
+          compression-level: 9
+
+      - name: Upload build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: buildDiagnostics
+          path: |
+            android/app/build/reports/
+            android/build/reports/
+          retention-days: 7
+          compression-level: 9
+
+  # ============================================================
+  # JOB 3: Push artifact back (on success only)
+  # ============================================================
+  on-success:
+    runs-on: ubuntu-latest
+    needs: build-apk
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: fitness3d-apk-${{ github.run_number }}
+          path: ./apk/
+
+      - name: Commit APK hash to repo
+        run: |
+          SHA=$(sha256sum apk/app-debug.apk | cut -d' ' -f1)
+          echo "APK SHA256: $SHA"
+          echo "$SHA" > APK_SHA256.txt
+          git config user.name "GitHub Actions Bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add APK_SHA256.txt
+          git diff --cached --quiet || git commit -m "ci: APK SHA256 for run #${{ github.run_number }}" || true
+
+      - name: Push SHA commit
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
