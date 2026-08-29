@@ -68,13 +68,13 @@ class ModelLoader {
 
   /**
    * Load muscle model by muscle ID
+   * Uses the single body.glb file with named meshes
    */
   async loadMuscleModel(muscleId: string): Promise<GLTFModel> {
-    const path = `${this.modelPath}muscle_${muscleId}.glb`;
     try {
-      return await this.loadModel(path);
+      return await this.loadModel(`${this.modelPath}body.glb`);
     } catch (error) {
-      console.warn(`Muscle model ${muscleId} not found, loading placeholder.`);
+      console.warn(`Failed to load body.glb for muscle ${muscleId}, loading fallback geometry.`);
       return {
         scene: this.loadPlaceholderGeometry(),
         animations: [],
