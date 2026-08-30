@@ -18,6 +18,7 @@
     "expo": "~51.0.39",
     "expo-blur": "^57.0.2",
     "expo-gl": "~12.5.0",
+    "expo-updates": "~0.25.28",
     "react": "18.2.0",
     "react-native": "0.74.3",
     "react-native-gesture-handler": "~2.14.1",
