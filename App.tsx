@@ -41,7 +41,7 @@ export type RootStackParamList = {
   Home: undefined
   MuscleSelect: undefined
   ExerciseDetail: { exerciseId: string }
-  Demo: { exerciseId: string }
+  Demo: { muscleId: string }
   Profile: undefined
 }
 

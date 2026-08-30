@@ -19,7 +19,6 @@
     },
     "android": {
       "package": "com.fitness3d.app",
-      "adapter": "auto",
       "versionCode": 1,
       "enableHardwareAcceleration": true
     },
