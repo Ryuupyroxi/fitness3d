@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Fitness 3D App - Screen Architecture</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; padding: 20px; }
+  h1 { color: #4A90E2; }
+  h2 { color: #ff6b6b; margin-top: 30px; }
+  .screen { background: #16213e; border-radius: 12px; padding: 20px; margin: 15px 0; border: 1px solid #4A90E2; }
+  .screen h3 { color: #4A90E2; margin-top: 0; }
+  .component { background: #0f3460; border-radius: 8px; padding: 12px; margin: 5px 0; font-family: monospace; font-size: 13px; }
+  .component .name { color: #ffd700; font-weight: bold; }
+  .component .prop { color: #90ee90; }
+  .component .func { color: #87ceeb; }
+  .component .type { color: #dda0dd; }
+  .issue { background: #8b0000; padding: 8px; border-radius: 6px; margin: 3px 0; font-size: 12px; }
+  .fix { background: #006400; padding: 8px; border-radius: 6px; margin: 3px 0; font-size: 12px; }
+  .arrow { color: #ff6347; font-size: 18px; }
+  .flow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .box { background: #533483; padding: 10px 15px; border-radius: 8px; text-align: center; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>🐺 Fitness 3D App — Screen Architecture & QA</h1>
+
+<div class="screen">
+  <h3>📱 App.tsx — Root Navigator</h3>
+  <div class="flow">
+    <span class="box">Home</span> <span class="arrow">→</span>
+    <span class="box">MuscleSelect</span> <span class="arrow">→</span>
+    <span class="box">ExerciseDetail</span> <span class="arrow">↔</span>
+    <span class="box">Demo</span> <span class="arrow">↔</span>
+    <span class="box">Profile</span>
+  </div>
+  <div class="component">
+    <span class="prop">PaperProvider</span> → <span class="prop">NavigationContainer</span> → <span class="prop">Stack.Navigator</span><br>
+    <span class="prop">5 screens</span>: Home, MuscleSelect, ExerciseDetail, Demo, Profile<br>
+    <span class="prop">Demo params</span>: { muscleId: string } ✅ Fixed
+  </div>
+</div>
+
+<div class="screen">
+  <h3>🎯 ThreeCanvas.tsx — 3D Renderer</h3>
+  <div class="component">
+    <span class="name">GLView</span> (expo-gl) → <span class="name">THREE.Scene</span> + <span class="name">PerspectiveCamera</span> + <span class="name">WebGLRenderer</span><br>
+    <span class="func">onContextCreate</span>: Initializes scene, camera, renderer, lighting (ambient + directional)<br>
+    <span class="func">ModelLoader.loadMuscleModel('body')</span>: Tries to load body.glb, falls back to placeholder cube<br>
+    <span class="name">PanResponder</span> (deprecated ⚠️): rotateCamera, panCamera, zoomCamera via gestures<br>
+    <span class="func">render loop</span>: requestAnimationFrame with cube rotation + renderer.render()<br>
+    <span class="prop">Cleanup</span>: cancelAnimationFrame + renderer.dispose() on unmount ✅
+  </div>
+  <div class="fix">✅ Fixed: Removed onTouchMove={undefined} — touch now enabled on 3D canvas</div>
+  <div class="issue">⚠️ PanResponder deprecated — use react-native-gesture-handler<br>⚠️ No raycasting integration — touch rotates camera but doesn't select muscles<br>⚠️ ModelLoader instantiated outside hook — potential memory leak</div>
+</div>
+
+<div class="screen">
+  <h3>🦴 MuscleSelectScreen.tsx — Muscle List</h3>
+  <div class="component">
+    <span class="name">Header</span>: "Select a Muscle" + Profile icon<br>
+    <span class="name">SearchBar</span>: TextInput with search query filtering<br>
+    <span class="name">ZoneFilters</span>: All / Upper Body / Core / Lower Body chips<br>
+    <span class="name">FlatList</span>: data={allMuscles} (flattened), keyExtractor={item.id}<br>
+    <span class="name">renderMuscleItem</span>: TouchableOpacity with Ionicons badge + name + group<br>
+    <span class="prop">Navigation</span>: onPress → selectMuscle(item) → navigate('Demo', { muscleId })
+  </div>
+  <div class="fix">✅ Fixed: FlatList now uses allMuscles flat array with keyExtractor on item.id</div>
+  <div class="fix">✅ Added: accessibilityLabel, accessibilityRole="button" on TouchableOpacity</div>
+</div>
+
+<div class="screen">
+  <h3>💪 ExerciseDetailScreen.tsx — Exercise Details</h3>
+  <div class="component">
+    <span class="name">Header</span>: Back button + exercise name (dynamic) + share button<br>
+    <span class="name">TabBar</span>: Overview | Demo | Tips (3 tabs)<br>
+    <span class="name">Overview tab</span>: Animated.ScrollView with About, Target Muscles, Equipment, Reps/Sets<br>
+    <span class="name">Demo tab</span>: Play-circle icon + "3D Animation Demo" placeholder<br>
+    <span class="name">Tips tab</span>: Form tip cards with numbered list<br>
+    <span class="prop">Data source</span>: EXERCISE_REGISTRY[exerciseId] from exerciseRegistry.ts
+  </div>
+  <div class="fix">✅ Fixed: Removed unused Image and BlurView imports</div>
+  <div class="issue">⚠️ Share button has no onPress handler<br>⚠️ progress state initialized but never used<br>⚠️ getMuscles returns any[] type cast</div>
+</div>
+
+<div class="screen">
+  <h3>📊 Data Layer</h3>
+  <div class="component">
+    <span class="name">muscleMap.ts</span>: 388 muscles with meshIdentifiers, zones, origins, insertions, actions<br>
+    <span class="name">exerciseRegistry.ts</span>: 79 exercises with muscles, formTips, difficulty ratings<br>
+    <span class="name">All muscle refs</span>: ✅ 31 unique IDs all valid — no more missing IDs!
+  </div>
+</div>
+
+<h2>🚀 Next Steps for APK Build</h2>
+<div class="screen">
+  <div class="flow">
+    <span class="box">1. Commit android/ dir</span> <span class="arrow">→</span>
+    <span class="box">2. Trigger workflow_dispatch</span> <span class="arrow">→</span>
+    <span class="box">3. Audit → Build → Upload</span>
+  </div>
+  <p>The android/ directory is already committed. We can trigger the build with <code>gh workflow run android-build.yml --ref main</code>.</p>
+</div>
+</body>
+</html>

@@ -41,5 +41,5 @@
     "typescript": "~5.3.3"
   },
   "private": true,
-  "main": "node_modules/expo-updates/boot.js"
+  "main": "expo/AppEntry.js"
 }
