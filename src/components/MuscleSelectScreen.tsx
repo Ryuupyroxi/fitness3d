@@ -55,7 +55,9 @@ export const MuscleSelectScreen: React.FC<any> = ({ navigation }) => {
     return acc
   }, {} as Record<MuscleZone, typeof filteredMuscles>)
 
-  const sections = Object.entries(groupedMuscles)
+  const allMuscles = Object.values(groupedMuscles).flat()
+
+const sections = Object.entries(groupedMuscles)
     .filter(([, muscles]) => muscles.length > 0)
     .map(([zone, muscles]) => ({
       title: ZONE_LABELS[zone as MuscleZone],
@@ -65,6 +67,9 @@ export const MuscleSelectScreen: React.FC<any> = ({ navigation }) => {
   const renderMuscleItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.muscleItem}
+      accessible={true}
+      accessibilityLabel={item.name}
+      accessibilityRole="button"
       onPress={() => {
         selectMuscle(item)
         navigation.navigate('Demo', { muscleId: item.id })
@@ -143,9 +148,9 @@ export const MuscleSelectScreen: React.FC<any> = ({ navigation }) => {
       </View>
 
       <FlatList
-        data={sections}
+        data={allMuscles}
         renderItem={renderMuscleItem}
-        keyExtractor={(item) => item.title}
+        keyExtractor={(item) => item.id}
         ItemSeparatorComponent={() => <View style={{ height: 1 }} />}
         contentContainerStyle={styles.listContent}
       />

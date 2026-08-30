@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef, useCallback, useState } from 'react'
-import { View, StyleSheet, Dimensions, PanResponder } from 'react-native'
+import { View, StyleSheet, Dimensions, PanResponder, AccessibilityInfo } from 'react-native'
 import { GLView } from 'expo-gl'
 import * as THREE from 'three'
 import { useAppStore } from '../store/useAppStore'
@@ -194,7 +194,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       <GLView
         style={[styles.canvas]}
         onContextCreate={onContextCreate}
-        onTouchMove={undefined}
       />
     </View>
   )

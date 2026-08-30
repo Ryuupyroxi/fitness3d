@@ -11,8 +11,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
-  TouchableOpacity,
+    TouchableOpacity,
   Dimensions,
   StatusBar,
   Animated
@@ -21,7 +20,6 @@ import { useAppStore } from '../store/useAppStore'
 import { getMuscleById, getExercisesForMuscle } from '../data/muscleMap'
 import { EXERCISE_REGISTRY } from '../data/exerciseRegistry'
 import { Ionicons } from '@expo/vector-icons'
-import { BlurView } from 'expo-blur'
 
 const { width, height } = Dimensions.get('window')
 
