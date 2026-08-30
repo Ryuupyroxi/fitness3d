@@ -1,36 +1,42 @@
 /**
- * 3D Raycasting Service
- * Fitness 3D App - Phase 2
- * 
- * Handles touch-based muscle selection via raycasting
+ * Region-Based Raycasting Service
+ * Fitness 3D App — Replaces broken mesh-name raycasting with region selection
+ *
+ * The old raycaster relied on `meshIdentifier` names that don't exist in CesiumMan.
+ * This version casts a ray, gets the hit point on the single mesh, and classifies
+ * it into a body region via regionSelector.classifyPoint().
  */
 
-import * as THREE from 'three'
-import type { RaycastResult, Muscle } from '../types'
+import * as THREE from 'three';
+import { classifyPoint, BODY_REGIONS, BodyRegion } from './regionSelector';
+import type { RaycastResult } from '../types';
 
 interface RaycasterOptions {
-  fov?: number
-  near?: number
-  far?: number
-  enablePointerLock?: boolean
+  fov?: number;
+  near?: number;
+  far?: number;
 }
 
-class RaycasterService {
-  private raycaster: THREE.Raycaster
-  private mouse: THREE.Vector2
-  private enabled: boolean
-  private onSelect: ((muscle: Muscle | null) => void) | null
+export interface RegionRaycastResult extends RaycastResult {
+  region: BodyRegion | null;
+  muscleIds: string[];
+}
+
+class RegionRaycasterService {
+  private raycaster: THREE.Raycaster;
+  private mouse: THREE.Vector2;
+  private enabled: boolean;
+  private onSelect: ((result: RegionRaycastResult) => void) | null;
 
   constructor(options: RaycasterOptions = {}) {
-    this.raycaster = new THREE.Raycaster()
-    this.mouse = new THREE.Vector2()
-    this.enabled = true
-    this.onSelect = null
-    
-    // Configure raycaster mesh threshold
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+    this.enabled = true;
+    this.onSelect = null;
+
     this.raycaster.params.Mesh = {
-      threshold: 0.1
-    }
+      threshold: 0.1,
+    };
   }
 
   /**
@@ -39,81 +45,53 @@ class RaycasterService {
   screenToNDC(x: number, y: number, width: number, height: number): { x: number; y: number } {
     return {
       x: (x / width) * 2 - 1,
-      y: -(y / height) * 2 + 1
-    }
+      y: -(y / height) * 2 + 1,
+    };
   }
 
   /**
-   * Cast ray from screen position through objects
+   * Cast ray and classify hit point into a body region
    */
-  castRay(
+  castRayToRegion(
     x: number,
     y: number,
     objects: THREE.Object3D[],
     camera: THREE.Camera,
     width: number,
-    height: number
-  ): RaycastResult {
-    // Convert to NDC
-    const ndc = this.screenToNDC(x, y, width, height)
-    this.mouse.set(ndc.x, ndc.y)
-    
-    // Set the raycaster's ray
-    this.raycaster.setFromCamera(this.mouse, camera)
-    
-    // Intersect with objects
-    const intersects = this.raycaster.intersectObjects(objects, true)
-    
+    height: number,
+  ): RegionRaycastResult {
+    const ndc = this.screenToNDC(x, y, width, height);
+    this.mouse.set(ndc.x, ndc.y);
+
+    this.raycaster.setFromCamera(this.mouse, camera);
+
+    const intersects = this.raycaster.intersectObjects(objects, true);
+
     if (intersects.length > 0) {
-      const firstIntersect = intersects[0]
-      const point = [
+      const firstIntersect = intersects[0];
+      const point: [number, number, number] = [
         firstIntersect.point.x,
         firstIntersect.point.y,
-        firstIntersect.point.z
-      ] as [number, number, number]
-      
+        firstIntersect.point.z,
+      ];
+
+      // Classify the hit point into a body region
+      const region = classifyPoint(firstIntersect.point);
+
       return {
         intersected: true,
-        point
-      }
+        point,
+        region,
+        muscleIds: region ? region.muscleIds : [],
+      };
     }
-    
+
     return {
       intersected: false,
-      point: [0, 0, 0]
-    }
-  }
-
-  /**
-   * Check if ray intersects a specific mesh by name
-   */
-  intersectsMesh(
-    meshName: string,
-    x: number,
-    y: number,
-    objects: THREE.Object3D[],
-    camera: THREE.Camera,
-    width: number,
-    height: number
-  ): { intersects: boolean; distance?: number } {
-    const result = this.castRay(x, y, objects, camera, width, height)
-    
-    if (!result.intersected) {
-      return { intersects: false }
-    }
-    
-    // Find the mesh by name
-    const meshes = objects.filter(obj => obj.name === meshName)
-    if (meshes.length === 0) {
-      return { intersects: false }
-    }
-    
-    // Check if this specific mesh was hit
-    const intersects = this.raycaster.intersectObject(meshes[0])
-    return {
-      intersects: intersects.length > 0,
-      distance: intersects[0]?.distance
-    }
+      point: [0, 0, 0],
+      region: null,
+      muscleIds: [],
+    };
   }
 
   /**
@@ -121,49 +99,43 @@ class RaycasterService {
    */
   findClosestMuscle(
     intersects: THREE.Intersection[],
-    muscleMap: Record<string, Muscle>
-  ): Muscle | null {
-    if (intersects.length === 0) return null
-    
-    // The first intersection is the closest
-    const object = intersects[0].object
-    
-    // Find the muscle by mesh name
-    const meshName = object.name || object.type
-    
-    // Search through muscle map for matching mesh
-    for (const [id, muscle] of Object.entries(muscleMap)) {
-      if (muscle.meshIdentifier === meshName) {
-        return muscle
-      }
+  ): { region: BodyRegion | null; distance?: number } {
+    if (intersects.length === 0) {
+      return { region: null };
     }
-    
-    return null
+
+    const point = intersects[0].point;
+    const region = classifyPoint(point);
+
+    return {
+      region,
+      distance: intersects[0].distance,
+    };
   }
 
   /**
    * Enable/disable raycasting
    */
   setEnabled(enabled: boolean): void {
-    this.enabled = enabled
+    this.enabled = enabled;
   }
 
   /**
    * Check if raycasting is enabled
    */
   isEnabled(): boolean {
-    return this.enabled
+    return this.enabled;
   }
 
   /**
    * Set selection callback
    */
-  setOnSelect(callback: (muscle: Muscle | null) => void): void {
-    this.onSelect = callback
+  setOnSelect(callback: (result: RegionRaycastResult) => void): void {
+    this.onSelect = callback;
   }
 
   /**
-   * Handle touch end event
+   * Handle touch end event — region-based selection
    */
   handleTouchEnd(
     touchX: number,
@@ -172,40 +144,34 @@ class RaycasterService {
     camera: THREE.Camera,
     width: number,
     height: number,
-    muscleMap: Record<string, Muscle>
-  ): Muscle | null {
-    if (!this.enabled) return null
-    
-    const result = this.castRay(touchX, touchY, objects, camera, width, height)
-    
-    if (result.intersected) {
-      // Get all intersections
-      const intersects = this.raycaster.intersectObjects(objects, true)
-      const muscle = this.findClosestMuscle(intersects, muscleMap)
-      
-      if (this.onSelect) {
-        this.onSelect(muscle)
-      }
-      
-      return muscle
+  ): RegionRaycastResult | null {
+    if (!this.enabled) return null;
+
+    const result = this.castRayToRegion(touchX, touchY, objects, camera, width, height);
+
+    if (result.intersected && this.onSelect) {
+      this.onSelect(result);
     }
-    
-    if (this.onSelect) {
-      this.onSelect(null)
-    }
-    
-    return null
+
+    return result.intersected ? result : null;
+  }
+
+  /**
+   * Get all body regions (for UI display)
+   */
+  getBodyRegions(): BodyRegion[] {
+    return BODY_REGIONS;
   }
 }
 
 // Singleton instance
-let raycasterService: RaycasterService | null = null
+let regionRaycasterService: RegionRaycasterService | null = null;
 
-export const getRaycasterService = (): RaycasterService => {
-  if (!raycasterService) {
-    raycasterService = new RaycasterService()
+export const getRegionRaycasterService = (): RegionRaycasterService => {
+  if (!regionRaycasterService) {
+    regionRaycasterService = new RegionRaycasterService();
   }
-  return raycasterService
-}
+  return regionRaycasterService;
+};
 
-export default RaycasterService
+export default RegionRaycasterService;
