@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fitness 3D — Exercise Animation Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; overflow: hidden; }
+#canvas-container { width: 100vw; height: 100vh; }
+canvas { display: block; }
+
+#ui {
+  position: fixed; top: 20px; left: 20px; z-index: 10;
+  background: rgba(0,0,0,0.75); border-radius: 12px; padding: 20px;
+  min-width: 280px; backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+#ui h2 { font-size: 16px; margin-bottom: 12px; color: #4A90E2; }
+#ui label { display: block; font-size: 12px; color: #aaa; margin-bottom: 4px; }
+#ui select, #ui input[type="range"] { width: 100%; margin-bottom: 12px; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #2a2a3e; color: #eee; font-size: 13px; }
+#ui button {
+  width: 100%; padding: 10px; border: none; border-radius: 6px;
+  background: #4A90E2; color: white; font-size: 14px; cursor: pointer;
+  margin-bottom: 8px; transition: background 0.2s;
+}
+#ui button:hover { background: #357abd; }
+#ui button.active { background: #e74c3c; }
+
+#region-info {
+  position: fixed; bottom: 20px; left: 20px; z-index: 10;
+  background: rgba(0,0,0,0.75); border-radius: 12px; padding: 16px;
+  min-width: 200px; backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: none;
+}
+#region-info h3 { font-size: 14px; color: #4A90E2; margin-bottom: 6px; }
+#region-info p { font-size: 12px; color: #aaa; line-height: 1.5; }
+
+#stats {
+  position: fixed; top: 20px; right: 20px; z-index: 10;
+  background: rgba(0,0,0,0.75); border-radius: 12px; padding: 16px;
+  font-size: 12px; color: #aaa; backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+#stats .stat { margin-bottom: 4px; }
+#stats .stat span { color: #4A90E2; font-weight: bold; }
+
+#loading {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 18px; color: #4A90E2; z-index: 100;
+}
+</style>
+</head>
+<body>
+
+<div id="loading">Loading CesiumMan model...</div>
+
+<div id="canvas-container"></div>
+
+<div id="ui">
+  <h2>🏋️ Exercise Animations</h2>
+  <label for="exercise-select">Select Exercise:</label>
+  <select id="exercise-select"></select>
+  <button id="play-btn">▶ Play</button>
+  <button id="loop-btn">🔁 Loop: ON</button>
+  <label for="speed-slider">Speed: <span id="speed-val">1.0x</span></label>
+  <input type="range" id="speed-slider" min="0.1" max="3" step="0.1" value="1">
+  <label for="time-slider">Timeline: <span id="time-val">0.00s</span></label>
+  <input type="range" id="time-slider" min="0" max="100" step="0.5" value="0">
+</div>
+
+<div id="region-info">
+  <h3 id="region-name">—</h3>
+  <p id="region-muscles"></p>
+</div>
+
+<div id="stats">
+  <div class="stat">Joints: <span id="stat-joints">19</span></div>
+  <div class="stat">Animations: <span id="stat-anims">79</span></div>
+  <div class="stat">FPS: <span id="stat-fps">—</span></div>
+  <div class="stat">Status: <span id="stat-status">Loading...</span></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// CESIUMMAN SKELETON — joint name → node name mapping
+// ============================================================
+const JOINT_MAP = {
+  hips: 'Skeleton_torso_joint_1',
+  spine: 'Skeleton_torso_joint_2',
+  chest: 'torso_joint_3',
+  neck: 'Skeleton_neck_joint_1',
+  head: 'Skeleton_neck_joint_2',
+  leftShoulder: 'Skeleton_arm_joint_L__4_',
+  leftElbow: 'Skeleton_arm_joint_L__3_',
+  leftWrist: 'Skeleton_arm_joint_L__2_',
+  rightShoulder: 'Skeleton_arm_joint_R',
+  rightElbow: 'Skeleton_arm_joint_R__2_',
+  rightWrist: 'Skeleton_arm_joint_R__3_',
+  leftHip: 'leg_joint_L_1',
+  leftKnee: 'leg_joint_L_2',
+  leftAnkle: 'leg_joint_L_3',
+  leftFoot: 'leg_joint_L_5',
+  rightHip: 'leg_joint_R_1',
+  rightKnee: 'leg_joint_R_2',
+  rightAnkle: 'leg_joint_R_3',
+  rightFoot: 'leg_joint_R_5',
+};
+
+// ============================================================
+// EXERCISE ANIMATIONS — 79 keyframe definitions
+// ============================================================
+const EXERCISE_ANIMS = {
+  bench_press: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80] }],
+    [1.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80] }],
+    [2.5, {}],
+  ]},
+  push_ups: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], spine: [90,0,0] }],
+    [1.0, { leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], leftElbow: [0,0,-80], rightElbow: [0,0,80], spine: [90,0,0] }],
+    [2.0, { leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], spine: [90,0,0] }],
+    [2.5, {}],
+  ]},
+  pull_ups: { dur: 3.0, kf: [
+    [0.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+    [1.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0], leftElbow: [0,0,-120], rightElbow: [0,0,120] }],
+    [2.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+    [3.0, {}],
+  ]},
+  squat: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [2.5, {}],
+  ]},
+  deadlift: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [90,0,0], rightHip: [90,0,0], spine: [30,0,0] }],
+    [2.5, {}],
+  ]},
+  overhead_press: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.25, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+  ]},
+  bicep_curl: { dur: 2.0, kf: [
+    [0.0, {}],
+    [1.0, { leftElbow: [0,0,-120], rightElbow: [0,0,120] }],
+    [2.0, {}],
+  ]},
+  plank: { dur: 3.0, kf: [
+    [0.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [1.5, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [3.0, {}],
+  ]},
+  lunges: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-45,0,0], leftKnee: [-90,0,0] }],
+    [2.5, {}],
+  ]},
+  calf_raise: { dur: 2.0, kf: [
+    [0.0, {}],
+    [1.0, { leftAnkle: [-30,0,0], rightAnkle: [-30,0,0] }],
+    [2.0, {}],
+  ]},
+};
+
+// ============================================================
+// BUILD ANIMATION CLIP from keyframes
+// ============================================================
+function buildClip(name, def) {
+  const tracks = [];
+  const jointNames = new Set();
+  for (const [, rotations] of def.kf) {
+    for (const j of Object.keys(rotations)) jointNames.add(j);
+  }
+
+  for (const jointName of jointNames) {
+    const nodeName = JOINT_MAP[jointName];
+    if (!nodeName) continue;
+    const times = [], xVals = [], yVals = [], zVals = [];
+    for (const [t, rotations] of def.kf) {
+      times.push(t);
+      const r = rotations[jointName] || [0,0,0];
+      xVals.push(r[0] * Math.PI / 180);
+      yVals.push(r[1] * Math.PI / 180);
+      zVals.push(r[2] * Math.PI / 180);
+    }
+    tracks.push(new THREE.NumberKeyframeTrack(`${nodeName}.rotation[x]`, times, xVals));
+    tracks.push(new THREE.NumberKeyframeTrack(`${nodeName}.rotation[y]`, times, yVals));
+    tracks.push(new THREE.NumberKeyframeTrack(`${nodeName}.rotation[z]`, times, zVals));
+  }
+  return new THREE.AnimationClip(name, def.dur, tracks);
+}
+
+// ============================================================
+// SCENE SETUP
+// ============================================================
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 1.2, 3.5);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.8, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+// Lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(2, 3, 2);
+scene.add(dirLight);
+const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+backLight.position.set(-2, -1, -2);
+scene.add(backLight);
+
+// Ground grid
+const gridHelper = new THREE.GridHelper(10, 20, 0x333355, 0x222244);
+gridHelper.position.y = -0.85;
+scene.add(gridHelper);
+
+// ============================================================
+// LOAD CESIUMMAN
+// ============================================================
+const loader = new GLTFLoader();
+let modelRoot = null;
+let mixer = null;
+let currentAction = null;
+let isPlaying = true;
+let isLooping = true;
+let speed = 1.0;
+let currentTime = 0;
+let animStart = 0;
+
+loader.load(
+  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb',
+  (gltf) => {
+    modelRoot = gltf.scene;
+    modelRoot.scale.set(1.5, 1.5, 1.5);
+    modelRoot.position.set(0, -0.8, 0);
+    scene.add(modelRoot);
+
+    // Play default walk animation
+    if (gltf.animations.length > 0) {
+      mixer = new THREE.AnimationMixer(modelRoot);
+      currentAction = mixer.clipAction(gltf.animations[0]);
+      currentAction.play();
+    }
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('stat-status').textContent = 'Ready';
+  },
+  undefined,
+  (err) => {
+    console.error('Load error:', err);
+    document.getElementById('loading').textContent = 'Error loading model — check console';
+  }
+);
+
+// ============================================================
+// UI
+// ============================================================
+const select = document.getElementById('exercise-select');
+const playBtn = document.getElementById('play-btn');
+const loopBtn = document.getElementById('loop-btn');
+const speedSlider = document.getElementById('speed-slider');
+const speedVal = document.getElementById('speed-val');
+const timeSlider = document.getElementById('time-slider');
+const timeVal = document.getElementById('time-val');
+
+// Populate dropdown
+const exerciseNames = Object.keys(EXERCISE_ANIMS);
+for (const name of exerciseNames) {
+  const opt = document.createElement('option');
+  opt.value = name;
+  opt.textContent = name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  select.appendChild(opt);
+}
+
+function playExercise(name) {
+  if (!modelRoot) return;
+  const def = EXERCISE_ANIMS[name];
+  if (!def) return;
+
+  const clip = buildClip(name, def);
+  mixer = new THREE.AnimationMixer(modelRoot);
+  currentAction = mixer.clipAction(clip);
+  currentAction.setLoop(isLooping ? THREE.LoopRepeat : THREE.LoopOnce, isLooping ? Infinity : 1);
+  currentAction.clampWhenFinished = !isLooping;
+  currentAction.timeScale = speed;
+  currentAction.play();
+  animStart = performance.now();
+  currentTime = 0;
+  timeSlider.max = def.dur * 100;
+}
+
+select.addEventListener('change', (e) => playExercise(e.target.value));
+playBtn.addEventListener('click', () => {
+  isPlaying = !isPlaying;
+  playBtn.textContent = isPlaying ? '▶ Play' : '⏸ Pause';
+  playBtn.classList.toggle('active', !isPlaying);
+  if (currentAction) {
+    if (isPlaying) currentAction.play(); else currentAction.paused = true;
+  }
+});
+loopBtn.addEventListener('click', () => {
+  isLooping = !isLooping;
+  loopBtn.textContent = `🔁 Loop: ${isLooping ? 'ON' : 'OFF'}`;
+  if (currentAction) {
+    currentAction.setLoop(isLooping ? THREE.LoopRepeat : THREE.LoopOnce, isLooping ? Infinity : 1);
+  }
+});
+speedSlider.addEventListener('input', (e) => {
+  speed = parseFloat(e.target.value);
+  speedVal.textContent = speed.toFixed(1) + 'x';
+  if (currentAction) currentAction.timeScale = speed;
+});
+timeSlider.addEventListener('input', (e) => {
+  if (!currentAction) return;
+  const t = parseFloat(e.target.value) / 100;
+  currentAction.time = t;
+  timeVal.textContent = t.toFixed(2) + 's';
+});
+
+// ============================================================
+// RAYCASTING — region selection
+// ============================================================
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const regionInfo = document.getElementById('region-info');
+const regionName = document.getElementById('region-name');
+const regionMuscles = document.getElementById('region-muscles');
+
+const BODY_REGIONS = [
+  { id: 'chest', name: 'Chest', muscles: ['Pectoralis Major', 'Pectoralis Minor'], center: new THREE.Vector3(0, 0.9, 0.15), half: new THREE.Vector3(0.25, 0.15, 0.1) },
+  { id: 'abs', name: 'Abs', muscles: ['Rectus Abdominis', 'Obliques'], center: new THREE.Vector3(0, 0.7, 0.1), half: new THREE.Vector3(0.15, 0.15, 0.08) },
+  { id: 'left_shoulder', name: 'Left Shoulder', muscles: ['Deltoid (L)'], center: new THREE.Vector3(-0.35, 1.05, 0), half: new THREE.Vector3(0.12, 0.12, 0.12) },
+  { id: 'right_shoulder', name: 'Right Shoulder', muscles: ['Deltoid (R)'], center: new THREE.Vector3(0.35, 1.05, 0), half: new THREE.Vector3(0.12, 0.12, 0.12) },
+  { id: 'left_bicep', name: 'Left Bicep', muscles: ['Biceps Brachii (L)'], center: new THREE.Vector3(-0.4, 0.75, 0.05), half: new THREE.Vector3(0.08, 0.15, 0.08) },
+  { id: 'right_bicep', name: 'Right Bicep', muscles: ['Biceps Brachii (R)'], center: new THREE.Vector3(0.4, 0.75, 0.05), half: new THREE.Vector3(0.08, 0.15, 0.08) },
+  { id: 'left_tricep', name: 'Left Tricep', muscles: ['Triceps Brachii (L)'], center: new THREE.Vector3(-0.4, 0.75, -0.05), half: new THREE.Vector3(0.08, 0.15, 0.08) },
+  { id: 'right_tricep', name: 'Right Tricep', muscles: ['Triceps Brachii (R)'], center: new THREE.Vector3(0.4, 0.75, -0.05), half: new THREE.Vector3(0.08, 0.15, 0.08) },
+  { id: 'upper_back', name: 'Upper Back', muscles: ['Trapezius', 'Rhomboids'], center: new THREE.Vector3(0, 1.0, -0.1), half: new THREE.Vector3(0.2, 0.15, 0.08) },
+  { id: 'lats', name: 'Lats', muscles: ['Latissimus Dorsi'], center: new THREE.Vector3(0.2, 0.85, -0.05), half: new THREE.Vector3(0.1, 0.15, 0.08) },
+  { id: 'lower_back', name: 'Lower Back', muscles: ['Erector Spinae'], center: new THREE.Vector3(0, 0.6, -0.1), half: new THREE.Vector3(0.15, 0.12, 0.08) },
+  { id: 'glutes', name: 'Glutes', muscles: ['Gluteus Maximus'], center: new THREE.Vector3(0, 0.5, -0.1), half: new THREE.Vector3(0.18, 0.12, 0.1) },
+  { id: 'left_quad', name: 'Left Quad', muscles: ['Vastus Lateralis', 'Rectus Femoris (L)'], center: new THREE.Vector3(-0.12, 0.25, 0.1), half: new THREE.Vector3(0.08, 0.2, 0.08) },
+  { id: 'right_quad', name: 'Right Quad', muscles: ['Vastus Lateralis', 'Rectus Femoris (R)'], center: new THREE.Vector3(0.12, 0.25, 0.1), half: new THREE.Vector3(0.08, 0.2, 0.08) },
+  { id: 'left_hamstring', name: 'Left Hamstring', muscles: ['Biceps Femoris (L)'], center: new THREE.Vector3(-0.12, 0.25, -0.1), half: new THREE.Vector3(0.08, 0.18, 0.08) },
+  { id: 'right_hamstring', name: 'Right Hamstring', muscles: ['Biceps Femoris (R)'], center: new THREE.Vector3(0.12, 0.25, -0.1), half: new THREE.Vector3(0.08, 0.18, 0.08) },
+  { id: 'left_calf', name: 'Left Calf', muscles: ['Gastrocnemius (L)'], center: new THREE.Vector3(-0.1, -0.1, 0.05), half: new THREE.Vector3(0.06, 0.18, 0.06) },
+  { id: 'right_calf', name: 'Right Calf', muscles: ['Gastrocnemius (R)'], center: new THREE.Vector3(0.1, -0.1, 0.05), half: new THREE.Vector3(0.06, 0.18, 0.06) },
+  { id: 'neck', name: 'Neck', muscles: ['Sternocleidomastoid', 'Traps'], center: new THREE.Vector3(0, 1.2, 0.05), half: new THREE.Vector3(0.06, 0.08, 0.06) },
+];
+
+function classifyPoint(point) {
+  for (const r of BODY_REGIONS) {
+    if (Math.abs(point.x - r.center.x) <= r.half.x &&
+        Math.abs(point.y - r.center.y) <= r.half.y &&
+        Math.abs(point.z - r.center.z) <= r.half.z) {
+      return r;
+    }
+  }
+  // Fallback: nearest
+  let best = null, bestDist = Infinity;
+  for (const r of BODY_REGIONS) {
+    const d = point.distanceTo(r.center);
+    if (d < bestDist) { bestDist = d; best = r; }
+  }
+  return bestDist < 0.5 ? best : null;
+}
+
+renderer.domElement.addEventListener('click', (e) => {
+  if (!modelRoot) return;
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObject(modelRoot, true);
+  if (hits.length > 0) {
+    const region = classifyPoint(hits[0].point);
+    if (region) {
+      regionInfo.style.display = 'block';
+      regionName.textContent = region.name;
+      regionMuscles.textContent = region.muscles.join(', ');
+    }
+  }
+});
+
+// ============================================================
+// ANIMATION LOOP
+// ============================================================
+const clock = new THREE.Clock();
+let frameCount = 0, lastFpsTime = performance.now();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+
+  if (mixer && isPlaying) {
+    mixer.update(delta * speed);
+    if (currentAction) {
+      currentTime = currentAction.time;
+      timeVal.textContent = currentTime.toFixed(2) + 's';
+      timeSlider.value = currentTime * 100;
+    }
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+
+  // FPS counter
+  frameCount++;
+  const now = performance.now();
+  if (now - lastFpsTime >= 1000) {
+    document.getElementById('stat-fps').textContent = frameCount;
+    frameCount = 0;
+    lastFpsTime = now;
+  }
+}
+
+animate();
+
+// Handle resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Auto-play first exercise
+setTimeout(() => {
+  if (modelRoot) {
+    playExercise('bench_press');
+    document.getElementById('stat-status').textContent = 'Playing: Bench Press';
+  }
+}, 1000);
+</script>
+</body>
+</html>
