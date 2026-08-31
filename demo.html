@@ -3,63 +3,91 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fitness 3D — Exercise Animation Demo</title>
+<title>Fitness 3D — Exercise Animation System Demo</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; color: #eee; overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #eee; overflow: hidden; }
 #canvas-container { width: 100vw; height: 100vh; }
 canvas { display: block; }
 
 #ui {
   position: fixed; top: 20px; left: 20px; z-index: 10;
-  background: rgba(0,0,0,0.75); border-radius: 12px; padding: 20px;
-  min-width: 280px; backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(15,15,26,0.92); border-radius: 14px; padding: 22px;
+  min-width: 300px; backdrop-filter: blur(12px);
+  border: 1px solid rgba(74,144,226,0.3);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
-#ui h2 { font-size: 16px; margin-bottom: 12px; color: #4A90E2; }
-#ui label { display: block; font-size: 12px; color: #aaa; margin-bottom: 4px; }
-#ui select, #ui input[type="range"] { width: 100%; margin-bottom: 12px; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #2a2a3e; color: #eee; font-size: 13px; }
+#ui h2 { font-size: 15px; margin-bottom: 14px; color: #4A90E2; font-weight: 600; }
+#ui label { display: block; font-size: 11px; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+#ui select, #ui input[type="range"] { width: 100%; margin-bottom: 12px; padding: 9px; border-radius: 7px; border: 1px solid #333; background: #1a1a2e; color: #eee; font-size: 13px; }
 #ui button {
-  width: 100%; padding: 10px; border: none; border-radius: 6px;
-  background: #4A90E2; color: white; font-size: 14px; cursor: pointer;
-  margin-bottom: 8px; transition: background 0.2s;
+  width: 100%; padding: 11px; border: none; border-radius: 7px;
+  background: linear-gradient(135deg, #4A90E2, #357abd); color: white; font-size: 13px; cursor: pointer;
+  margin-bottom: 7px; transition: all 0.2s; font-weight: 500;
 }
-#ui button:hover { background: #357abd; }
-#ui button.active { background: #e74c3c; }
+#ui button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(74,144,226,0.3); }
+#ui button.active { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+#ui .divider { height: 1px; background: #333; margin: 14px 0; }
+#ui .stats { font-size: 11px; color: #666; margin-top: 8px; }
+#ui .stats span { color: #4A90E2; }
 
 #region-info {
   position: fixed; bottom: 20px; left: 20px; z-index: 10;
-  background: rgba(0,0,0,0.75); border-radius: 12px; padding: 16px;
-  min-width: 200px; backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(15,15,26,0.92); border-radius: 14px; padding: 18px;
+  min-width: 220px; backdrop-filter: blur(12px);
+  border: 1px solid rgba(74,144,226,0.3);
   display: none;
 }
 #region-info h3 { font-size: 14px; color: #4A90E2; margin-bottom: 6px; }
-#region-info p { font-size: 12px; color: #aaa; line-height: 1.5; }
+#region-info p { font-size: 12px; color: #999; line-height: 1.6; }
 
-#stats {
+#status {
   position: fixed; top: 20px; right: 20px; z-index: 10;
-  background: rgba(0,0,0,0.75); border-radius: 12px; padding: 16px;
-  font-size: 12px; color: #aaa; backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(15,15,26,0.92); border-radius: 14px; padding: 18px;
+  font-size: 11px; color: #888; backdrop-filter: blur(12px);
+  border: 1px solid rgba(74,144,226,0.3);
 }
-#stats .stat { margin-bottom: 4px; }
-#stats .stat span { color: #4A90E2; font-weight: bold; }
+#status .stat { margin-bottom: 5px; }
+#status .stat span { color: #4A90E2; font-weight: 600; }
 
 #loading {
   position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  font-size: 18px; color: #4A90E2; z-index: 100;
+  font-size: 16px; color: #4A90E2; z-index: 100; text-align: center;
 }
+#loading .spinner {
+  width: 40px; height: 40px; border: 3px solid #333; border-top-color: #4A90E2;
+  border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#exercise-list {
+  position: fixed; top: 20px; right: 20px; z-index: 10;
+  background: rgba(15,15,26,0.92); border-radius: 14px; padding: 18px;
+  font-size: 11px; color: #888; backdrop-filter: blur(12px);
+  border: 1px solid rgba(74,144,226,0.3);
+  max-height: 80vh; overflow-y: auto; min-width: 180px;
+}
+#exercise-list h3 { font-size: 12px; color: #4A90E2; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+#exercise-list .exercise-item {
+  padding: 7px 10px; margin-bottom: 3px; border-radius: 5px; cursor: pointer;
+  transition: all 0.15s; border: 1px solid transparent;
+}
+#exercise-list .exercise-item:hover { background: rgba(74,144,226,0.1); border-color: rgba(74,144,226,0.3); }
+#exercise-list .exercise-item.active { background: rgba(74,144,226,0.2); border-color: #4A90E2; color: #fff; }
+#exercise-list .exercise-item .source { font-size: 9px; color: #666; margin-top: 2px; }
 </style>
 </head>
 <body>
 
-<div id="loading">Loading CesiumMan model...</div>
+<div id="loading">
+  <div class="spinner"></div>
+  Loading CesiumMan model...
+</div>
 
 <div id="canvas-container"></div>
 
 <div id="ui">
-  <h2>🏋️ Exercise Animations</h2>
+  <h2>🏋️ Exercise Animation System</h2>
   <label for="exercise-select">Select Exercise:</label>
   <select id="exercise-select"></select>
   <button id="play-btn">▶ Play</button>
@@ -68,6 +96,12 @@ canvas { display: block; }
   <input type="range" id="speed-slider" min="0.1" max="3" step="0.1" value="1">
   <label for="time-slider">Timeline: <span id="time-val">0.00s</span></label>
   <input type="range" id="time-slider" min="0" max="100" step="0.5" value="0">
+  <div class="divider"></div>
+  <div class="stats">
+    Joints: <span id="joints-count">19</span> | 
+    Animations: <span id="anims-count">79</span> | 
+    FPS: <span id="fps-count">—</span>
+  </div>
 </div>
 
 <div id="region-info">
@@ -75,11 +109,15 @@ canvas { display: block; }
   <p id="region-muscles"></p>
 </div>
 
-<div id="stats">
-  <div class="stat">Joints: <span id="stat-joints">19</span></div>
-  <div class="stat">Animations: <span id="stat-anims">79</span></div>
-  <div class="stat">FPS: <span id="stat-fps">—</span></div>
+<div id="status">
   <div class="stat">Status: <span id="stat-status">Loading...</span></div>
+  <div class="stat">Model: <span id="stat-model">CesiumMan</span></div>
+  <div class="stat">Source: <span id="stat-source">Procedural Keyframes</span></div>
+</div>
+
+<div id="exercise-list">
+  <h3>79 Exercises</h3>
+  <div id="exercise-items"></div>
 </div>
 
 <script type="importmap">
@@ -125,6 +163,7 @@ const JOINT_MAP = {
 // EXERCISE ANIMATIONS — 79 keyframe definitions
 // ============================================================
 const EXERCISE_ANIMS = {
+  // CHEST
   bench_press: { dur: 2.5, kf: [
     [0.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80] }],
     [1.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
@@ -137,15 +176,261 @@ const EXERCISE_ANIMS = {
     [2.0, { leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], spine: [90,0,0] }],
     [2.5, {}],
   ]},
+  decline_push_ups: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [-80,0,0], rightShoulder: [-80,0,0], spine: [110,0,0] }],
+    [1.0, { leftShoulder: [-80,0,0], rightShoulder: [-80,0,0], leftElbow: [0,0,-70], rightElbow: [0,0,70], spine: [110,0,0] }],
+    [2.0, { leftShoulder: [-80,0,0], rightShoulder: [-80,0,0], spine: [110,0,0] }],
+    [2.5, {}],
+  ]},
+  incline_bench_press: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,60], rightShoulder: [0,0,-60] }],
+    [1.0, { leftShoulder: [0,0,60], rightShoulder: [0,0,-60], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.0, { leftShoulder: [0,0,60], rightShoulder: [0,0,-60] }],
+    [2.5, {}],
+  ]},
+  cable_crossovers: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-20], rightElbow: [0,0,20] }],
+    [1.25, { leftShoulder: [0,0,20], rightShoulder: [0,0,-20], leftElbow: [0,0,-20], rightElbow: [0,0,20] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-20], rightElbow: [0,0,20] }],
+  ]},
+  dumbbell_flyes: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-10], rightElbow: [0,0,10] }],
+    [1.25, { leftShoulder: [0,0,30], rightShoulder: [0,0,-30], leftElbow: [0,0,-10], rightElbow: [0,0,10] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-10], rightElbow: [0,0,10] }],
+  ]},
+  dips_chest: { dur: 2.5, kf: [
+    [0.0, { leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.0, { leftShoulder: [10,0,0], rightShoulder: [10,0,0], leftElbow: [0,0,-10], rightElbow: [0,0,10] }],
+    [2.0, { leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.5, {}],
+  ]},
+  // BACK
   pull_ups: { dur: 3.0, kf: [
     [0.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
     [1.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0], leftElbow: [0,0,-120], rightElbow: [0,0,120] }],
     [2.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
     [3.0, {}],
   ]},
+  lat_pulldown: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [160,0,0], rightShoulder: [160,0,0], leftElbow: [0,0,-30], rightElbow: [0,0,30] }],
+    [1.25, { leftShoulder: [160,0,0], rightShoulder: [160,0,0], leftElbow: [0,0,-100], rightElbow: [0,0,100] }],
+    [2.5, { leftShoulder: [160,0,0], rightShoulder: [160,0,0], leftElbow: [0,0,-30], rightElbow: [0,0,30] }],
+  ]},
+  barbell_rows: { dur: 2.5, kf: [
+    [0.0, { spine: [45,0,0] }],
+    [1.25, { leftShoulder: [-20,0,0], rightShoulder: [-20,0,0], leftElbow: [0,0,-90], rightElbow: [0,0,90], spine: [45,0,0] }],
+    [2.5, { spine: [45,0,0] }],
+  ]},
+  seated_row: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [-30,0,0], rightShoulder: [-30,0,0] }],
+    [1.25, { leftShoulder: [-30,0,0], rightShoulder: [-30,0,0], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.5, { leftShoulder: [-30,0,0], rightShoulder: [-30,0,0] }],
+  ]},
+  face_pull: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.25, { leftShoulder: [0,0,120], rightShoulder: [0,0,-120], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+  ]},
+  rear_delt_fly: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.25, { leftShoulder: [0,0,140], rightShoulder: [0,0,-140], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+  ]},
+  rowing_machine: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [-30,0,0], rightShoulder: [-30,0,0], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.0, { leftShoulder: [-30,0,0], rightShoulder: [-30,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [2.0, { leftShoulder: [-30,0,0], rightShoulder: [-30,0,0], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.5, {}],
+  ]},
+  // SHOULDERS
+  overhead_press: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.25, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+  ]},
+  front_raise: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftShoulder: [90,0,0], rightShoulder: [90,0,0] }],
+    [2.5, {}],
+  ]},
+  lateral_raises: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+    [2.5, {}],
+  ]},
+  shrugs: { dur: 2.0, kf: [
+    [0.0, {}],
+    [1.0, { leftShoulder: [-10,0,0], rightShoulder: [-10,0,0] }],
+    [2.0, {}],
+  ]},
+  wall_angel: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.25, { leftShoulder: [0,0,120], rightShoulder: [0,0,-120], leftElbow: [0,0,-30], rightElbow: [0,0,30] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+  ]},
+  // BICEPS
+  bicep_curl: { dur: 2.0, kf: [
+    [0.0, {}],
+    [1.0, { leftElbow: [0,0,-120], rightElbow: [0,0,120] }],
+    [2.0, {}],
+  ]},
+  hammer_curl: { dur: 2.0, kf: [
+    [0.0, {}],
+    [1.0, { leftElbow: [0,0,-100], rightElbow: [0,0,100] }],
+    [2.0, {}],
+  ]},
+  preacher_curl: { dur: 2.0, kf: [
+    [0.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80] }],
+    [1.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80], leftElbow: [0,0,-110], rightElbow: [0,0,110] }],
+    [2.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80] }],
+  ]},
+  // TRICEPS
+  tricep_dips: { dur: 2.5, kf: [
+    [0.0, { leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.0, { leftShoulder: [10,0,0], rightShoulder: [10,0,0], leftElbow: [0,0,-10], rightElbow: [0,0,10] }],
+    [2.0, { leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.5, {}],
+  ]},
+  tricep_pushdown: { dur: 2.0, kf: [
+    [0.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80], leftElbow: [0,0,-100], rightElbow: [0,0,100] }],
+    [1.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80] }],
+    [2.0, { leftShoulder: [0,0,80], rightShoulder: [0,0,-80], leftElbow: [0,0,-100], rightElbow: [0,0,100] }],
+  ]},
+  // CORE
+  plank: { dur: 3.0, kf: [
+    [0.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [1.5, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [3.0, {}],
+  ]},
+  side_plank: { dur: 3.0, kf: [
+    [0.0, { spine: [90,90,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [1.5, { spine: [90,90,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [3.0, {}],
+  ]},
+  crunches: { dur: 2.0, kf: [
+    [0.0, { spine: [90,0,0] }],
+    [1.0, { spine: [90,0,0], chest: [-30,0,0] }],
+    [2.0, { spine: [90,0,0] }],
+  ]},
+  cable_crunch: { dur: 2.0, kf: [
+    [0.0, { spine: [90,0,0], leftShoulder: [160,0,0], rightShoulder: [160,0,0] }],
+    [1.0, { spine: [90,0,0], chest: [-40,0,0], leftShoulder: [160,0,0], rightShoulder: [160,0,0] }],
+    [2.0, { spine: [90,0,0], leftShoulder: [160,0,0], rightShoulder: [160,0,0] }],
+  ]},
+  curl_up: { dur: 2.0, kf: [
+    [0.0, { spine: [90,0,0] }],
+    [1.0, { spine: [90,0,0], chest: [-20,0,0] }],
+    [2.0, { spine: [90,0,0] }],
+  ]},
+  russian_twist: { dur: 2.0, kf: [
+    [0.0, { spine: [90,0,0], chest: [0,30,0] }],
+    [1.0, { spine: [90,0,0], chest: [0,-30,0] }],
+    [2.0, { spine: [90,0,0], chest: [0,30,0] }],
+  ]},
+  hanging_leg_raise: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+    [1.25, { leftShoulder: [180,0,0], rightShoulder: [180,0,0], leftHip: [90,0,0], rightHip: [90,0,0] }],
+    [2.5, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+  ]},
+  leg_raise_floor: { dur: 2.5, kf: [
+    [0.0, { spine: [90,0,0] }],
+    [1.25, { spine: [90,0,0], leftHip: [90,0,0], rightHip: [90,0,0] }],
+    [2.5, { spine: [90,0,0] }],
+  ]},
+  bicycle_crunches: { dur: 2.0, kf: [
+    [0.0, { spine: [90,0,0], chest: [0,20,0], leftHip: [45,0,0] }],
+    [1.0, { spine: [90,0,0], chest: [0,-20,0], rightHip: [45,0,0] }],
+    [2.0, { spine: [90,0,0], chest: [0,20,0], leftHip: [45,0,0] }],
+  ]},
+  dead_bugs: { dur: 2.5, kf: [
+    [0.0, { spine: [90,0,0], leftShoulder: [180,0,0], leftHip: [90,0,0] }],
+    [1.25, { spine: [90,0,0], rightShoulder: [180,0,0], rightHip: [90,0,0] }],
+    [2.5, { spine: [90,0,0], leftShoulder: [180,0,0], leftHip: [90,0,0] }],
+  ]},
+  bird_dog: { dur: 2.5, kf: [
+    [0.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [1.25, { spine: [90,0,0], leftShoulder: [-90,0,0], rightHip: [-45,0,0] }],
+    [2.5, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+  ]},
+  mountain_climbers: { dur: 2.0, kf: [
+    [0.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], leftHip: [90,0,0] }],
+    [1.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], rightHip: [90,0,0] }],
+    [2.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], leftHip: [90,0,0] }],
+  ]},
+  mountain_climber_x: { dur: 2.0, kf: [
+    [0.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], leftHip: [90,0,0] }],
+    [1.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], rightHip: [90,0,0] }],
+    [2.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0], leftHip: [90,0,0] }],
+  ]},
+  pallof_press: { dur: 2.5, kf: [
+    [0.0, { spine: [90,0,0], leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.25, { spine: [90,0,0], leftShoulder: [0,0,60], rightShoulder: [0,0,-60], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.5, { spine: [90,0,0], leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+  ]},
+  toe_touches: { dur: 2.0, kf: [
+    [0.0, { spine: [90,0,0] }],
+    [1.0, { spine: [90,0,0], chest: [-45,0,0] }],
+    [2.0, { spine: [90,0,0] }],
+  ]},
+  // LEGS
   squat: { dur: 2.5, kf: [
     [0.0, {}],
     [1.25, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [2.5, {}],
+  ]},
+  pause_squat: { dur: 3.0, kf: [
+    [0.0, {}],
+    [1.0, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [2.0, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [3.0, {}],
+  ]},
+  jump_squat: { dur: 2.0, kf: [
+    [0.0, {}],
+    [0.5, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [1.0, {}],
+    [1.5, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [2.0, {}],
+  ]},
+  front_squat: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+    [1.25, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0], leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+  ]},
+  goblet_squat: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [1.25, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0], leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
+  ]},
+  sissy_squat: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-45,0,0], rightHip: [-45,0,0], leftKnee: [45,0,0], rightKnee: [45,0,0] }],
+    [2.5, {}],
+  ]},
+  bulgarian_split_squat: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-90,0,0], leftKnee: [-90,0,0] }],
+    [2.5, {}],
+  ]},
+  lunges: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-45,0,0], leftKnee: [-90,0,0] }],
+    [2.5, {}],
+  ]},
+  jump_lunge: { dur: 2.0, kf: [
+    [0.0, {}],
+    [0.5, { leftHip: [-45,0,0], leftKnee: [-90,0,0] }],
+    [1.0, {}],
+    [1.5, { rightHip: [-45,0,0], rightKnee: [-90,0,0] }],
+    [2.0, {}],
+  ]},
+  cossack_squat: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-90,0,45], leftKnee: [-90,0,0] }],
+    [2.5, {}],
+  ]},
+  step_up: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-90,0,0], leftKnee: [-90,0,0] }],
     [2.5, {}],
   ]},
   deadlift: { dur: 2.5, kf: [
@@ -153,30 +438,152 @@ const EXERCISE_ANIMS = {
     [1.25, { leftHip: [90,0,0], rightHip: [90,0,0], spine: [30,0,0] }],
     [2.5, {}],
   ]},
-  overhead_press: { dur: 2.5, kf: [
-    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
-    [1.25, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
-    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90], leftElbow: [0,0,-90], rightElbow: [0,0,90] }],
-  ]},
-  bicep_curl: { dur: 2.0, kf: [
+  romanian_deadlift: { dur: 2.5, kf: [
     [0.0, {}],
-    [1.0, { leftElbow: [0,0,-120], rightElbow: [0,0,120] }],
-    [2.0, {}],
+    [1.25, { leftHip: [70,0,0], rightHip: [70,0,0], leftKnee: [10,0,0], rightKnee: [10,0,0] }],
+    [2.5, {}],
   ]},
-  plank: { dur: 3.0, kf: [
-    [0.0, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
-    [1.5, { spine: [90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
-    [3.0, {}],
-  ]},
-  lunges: { dur: 2.5, kf: [
+  good_mornings: { dur: 2.5, kf: [
     [0.0, {}],
-    [1.25, { leftHip: [-45,0,0], leftKnee: [-90,0,0] }],
+    [1.25, { leftHip: [60,0,0], rightHip: [60,0,0], spine: [30,0,0] }],
+    [2.5, {}],
+  ]},
+  good_morning_db: { dur: 2.5, kf: [
+    [0.0, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+    [1.25, { leftHip: [60,0,0], rightHip: [60,0,0], spine: [30,0,0], leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+    [2.5, { leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+  ]},
+  single_leg_rdl: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [70,0,0] }],
+    [2.5, {}],
+  ]},
+  hip_thrust: { dur: 2.5, kf: [
+    [0.0, { spine: [90,0,0], leftHip: [90,0,0], rightHip: [90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [1.25, { leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [2.5, { spine: [90,0,0], leftHip: [90,0,0], rightHip: [90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+  ]},
+  glute_bridge: { dur: 2.5, kf: [
+    [0.0, { spine: [90,0,0], leftHip: [90,0,0], rightHip: [90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [1.25, { spine: [45,0,0], leftHip: [45,0,0], rightHip: [45,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [2.5, { spine: [90,0,0], leftHip: [90,0,0], rightHip: [90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+  ]},
+  leg_press: { dur: 2.5, kf: [
+    [0.0, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [1.25, {}],
+    [2.5, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+  ]},
+  leg_curl: { dur: 2.0, kf: [
+    [0.0, { leftHip: [90,0,0], rightHip: [90,0,0] }],
+    [1.0, { leftHip: [90,0,0], rightHip: [90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [2.0, { leftHip: [90,0,0], rightHip: [90,0,0] }],
+  ]},
+  leg_extension: { dur: 2.0, kf: [
+    [0.0, { leftHip: [90,0,0], rightHip: [90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [1.0, { leftHip: [90,0,0], rightHip: [90,0,0] }],
+    [2.0, { leftHip: [90,0,0], rightHip: [90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+  ]},
+  nordic_curl: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [90,0,0], rightHip: [90,0,0] }],
     [2.5, {}],
   ]},
   calf_raise: { dur: 2.0, kf: [
     [0.0, {}],
     [1.0, { leftAnkle: [-30,0,0], rightAnkle: [-30,0,0] }],
     [2.0, {}],
+  ]},
+  calf_raise_single: { dur: 2.0, kf: [
+    [0.0, {}],
+    [1.0, { leftAnkle: [-30,0,0] }],
+    [2.0, {}],
+  ]},
+  seated_calf_raise: { dur: 2.0, kf: [
+    [0.0, { leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [1.0, { leftKnee: [-90,0,0], rightKnee: [-90,0,0], leftAnkle: [-30,0,0], rightAnkle: [-30,0,0] }],
+    [2.0, { leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+  ]},
+  // GLUTES / HIP
+  fire_hydrant: { dur: 2.0, kf: [
+    [0.0, {}],
+    [1.0, { leftHip: [0,0,45] }],
+    [2.0, {}],
+  ]},
+  donkey_kicks: { dur: 2.0, kf: [
+    [0.0, {}],
+    [1.0, { leftHip: [-90,0,0] }],
+    [2.0, {}],
+  ]},
+  clamshell: { dur: 2.0, kf: [
+    [0.0, {}],
+    [1.0, { leftHip: [0,0,30] }],
+    [2.0, {}],
+  ]},
+  hip_circle: { dur: 2.5, kf: [
+    [0.0, {}],
+    [0.625, { leftHip: [0,0,30] }],
+    [1.25, {}],
+    [1.875, { leftHip: [0,0,-30] }],
+    [2.5, {}],
+  ]},
+  piriformis_stretch: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-45,0,45] }],
+    [2.5, {}],
+  ]},
+  hip_flexor_stretch: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-30,0,0], rightHip: [30,0,0] }],
+    [2.5, {}],
+  ]},
+  // STRETCHES / YOGA
+  cat_cow: { dur: 2.5, kf: [
+    [0.0, { spine: [90,0,0] }],
+    [1.25, { spine: [90,0,0], chest: [-20,0,0] }],
+    [2.5, { spine: [90,0,0], chest: [20,0,0] }],
+  ]},
+  child_pose: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [90,0,0], rightHip: [90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [2.5, {}],
+  ]},
+  downward_dog: { dur: 2.5, kf: [
+    [0.0, {}],
+    [1.25, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [2.5, {}],
+  ]},
+  bear_crawl: { dur: 2.5, kf: [
+    [0.0, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [1.25, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [2.5, {}],
+  ]},
+  burpee: { dur: 3.0, kf: [
+    [0.0, {}],
+    [0.75, { leftHip: [90,0,0], rightHip: [90,0,0] }],
+    [1.5, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftShoulder: [-90,0,0], rightShoulder: [-90,0,0] }],
+    [2.25, { leftHip: [90,0,0], rightHip: [90,0,0] }],
+    [3.0, {}],
+  ]},
+  thruster: { dur: 2.5, kf: [
+    [0.0, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0], leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+    [1.25, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+    [2.5, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0], leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+  ]},
+  kettlebell_swing: { dur: 2.0, kf: [
+    [0.0, { leftHip: [70,0,0], rightHip: [70,0,0], leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+    [1.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+    [2.0, { leftHip: [70,0,0], rightHip: [70,0,0], leftShoulder: [0,0,90], rightShoulder: [0,0,-90] }],
+  ]},
+  wall_sit: { dur: 3.0, kf: [
+    [0.0, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [1.5, { leftHip: [-90,0,0], rightHip: [-90,0,0], leftKnee: [-90,0,0], rightKnee: [-90,0,0] }],
+    [3.0, {}],
+  ]},
+  pullup_neutral: { dur: 3.0, kf: [
+    [0.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+    [1.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0], leftElbow: [0,0,-120], rightElbow: [0,0,120] }],
+    [2.0, { leftShoulder: [180,0,0], rightShoulder: [180,0,0] }],
+    [3.0, {}],
   ]},
 };
 
@@ -213,7 +620,7 @@ function buildClip(name, def) {
 // ============================================================
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1a1a2e);
+scene.background = new THREE.Color(0x0f0f1a);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, 1.2, 3.5);
@@ -253,7 +660,6 @@ let isPlaying = true;
 let isLooping = true;
 let speed = 1.0;
 let currentTime = 0;
-let animStart = 0;
 
 loader.load(
   'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb',
@@ -263,7 +669,6 @@ loader.load(
     modelRoot.position.set(0, -0.8, 0);
     scene.add(modelRoot);
 
-    // Play default walk animation
     if (gltf.animations.length > 0) {
       mixer = new THREE.AnimationMixer(modelRoot);
       currentAction = mixer.clipAction(gltf.animations[0]);
@@ -276,7 +681,7 @@ loader.load(
   undefined,
   (err) => {
     console.error('Load error:', err);
-    document.getElementById('loading').textContent = 'Error loading model — check console';
+    document.getElementById('loading').textContent = 'Error loading model';
   }
 );
 
@@ -290,6 +695,7 @@ const speedSlider = document.getElementById('speed-slider');
 const speedVal = document.getElementById('speed-val');
 const timeSlider = document.getElementById('time-slider');
 const timeVal = document.getElementById('time-val');
+const exerciseItems = document.getElementById('exercise-items');
 
 // Populate dropdown
 const exerciseNames = Object.keys(EXERCISE_ANIMS);
@@ -298,6 +704,39 @@ for (const name of exerciseNames) {
   opt.value = name;
   opt.textContent = name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   select.appendChild(opt);
+}
+
+// Populate exercise list
+const categories = {
+  'CHEST': ['bench_press', 'push_ups', 'decline_push_ups', 'incline_bench_press', 'cable_crossovers', 'dumbbell_flyes', 'dips_chest'],
+  'BACK': ['pull_ups', 'lat_pulldown', 'barbell_rows', 'seated_row', 'face_pull', 'rear_delt_fly', 'rowing_machine'],
+  'SHOULDERS': ['overhead_press', 'front_raise', 'lateral_raises', 'shrugs', 'wall_angel'],
+  'BICEPS': ['bicep_curl', 'hammer_curl', 'preacher_curl'],
+  'TRICEPS': ['tricep_dips', 'tricep_pushdown'],
+  'CORE': ['plank', 'side_plank', 'crunches', 'cable_crunch', 'curl_up', 'russian_twist', 'hanging_leg_raise', 'leg_raise_floor', 'bicycle_crunches', 'dead_bugs', 'bird_dog', 'mountain_climbers', 'mountain_climber_x', 'pallof_press', 'toe_touches'],
+  'LEGS': ['squat', 'pause_squat', 'jump_squat', 'front_squat', 'goblet_squat', 'sissy_squat', 'bulgarian_split_squat', 'lunges', 'jump_lunge', 'cossack_squat', 'step_up', 'deadlift', 'romanian_deadlift', 'good_mornings', 'good_morning_db', 'single_leg_rdl', 'hip_thrust', 'glute_bridge', 'leg_press', 'leg_curl', 'leg_extension', 'nordic_curl', 'calf_raise', 'calf_raise_single', 'seated_calf_raise'],
+  'GLUTES': ['fire_hydrant', 'donkey_kicks', 'clamshell', 'hip_circle', 'piriformis_stretch', 'hip_flexor_stretch'],
+  'STRETCH': ['cat_cow', 'child_pose', 'downward_dog', 'bear_crawl', 'burpee', 'thruster', 'kettlebell_swing', 'wall_sit', 'pullup_neutral'],
+};
+
+for (const [cat, exercises] of Object.entries(categories)) {
+  const catDiv = document.createElement('div');
+  catDiv.style.cssText = 'color: #4A90E2; font-size: 10px; margin: 8px 0 4px; text-transform: uppercase; letter-spacing: 0.5px;';
+  catDiv.textContent = cat;
+  exerciseItems.appendChild(catDiv);
+  
+  for (const name of exercises) {
+    const div = document.createElement('div');
+    div.className = 'exercise-item';
+    div.textContent = name.replace(/_/g, ' ');
+    div.onclick = () => {
+      select.value = name;
+      playExercise(name);
+      document.querySelectorAll('.exercise-item').forEach(el => el.classList.remove('active'));
+      div.classList.add('active');
+    };
+    exerciseItems.appendChild(div);
+  }
 }
 
 function playExercise(name) {
@@ -312,9 +751,10 @@ function playExercise(name) {
   currentAction.clampWhenFinished = !isLooping;
   currentAction.timeScale = speed;
   currentAction.play();
-  animStart = performance.now();
   currentTime = 0;
   timeSlider.max = def.dur * 100;
+  
+  document.getElementById('stat-source').textContent = 'Procedural Keyframes';
 }
 
 select.addEventListener('change', (e) => playExercise(e.target.value));
@@ -384,7 +824,6 @@ function classifyPoint(point) {
       return r;
     }
   }
-  // Fallback: nearest
   let best = null, bestDist = Infinity;
   for (const r of BODY_REGIONS) {
     const d = point.distanceTo(r.center);
@@ -431,11 +870,10 @@ function animate() {
   controls.update();
   renderer.render(scene, camera);
 
-  // FPS counter
   frameCount++;
   const now = performance.now();
   if (now - lastFpsTime >= 1000) {
-    document.getElementById('stat-fps').textContent = frameCount;
+    document.getElementById('fps-count').textContent = frameCount;
     frameCount = 0;
     lastFpsTime = now;
   }
@@ -443,7 +881,6 @@ function animate() {
 
 animate();
 
-// Handle resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
